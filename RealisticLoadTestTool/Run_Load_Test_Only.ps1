@@ -13,7 +13,7 @@ $htmlFileName = 'RealisticLoadTest.html'
 $workingDir = $pwd.Path
 "This script finds all subdirectories with $htmlFileName files and runs a specifies number of instances of each."
 $instances = [int] $(Read-Host -Prompt 'Enter number of instances to initiate for each report')
-$numberOfPhysicalCores = (Get-WmiObject –class Win32_processor).NumberOfCores;
+$numberOfPhysicalCores = (Get-ciminstance –class Win32_processor).NumberOfCores;
 if ($numberOfPhysicalCores.Length)
 {
     #if computer has multiple sockets, then sum the array
@@ -22,19 +22,6 @@ if ($numberOfPhysicalCores.Length)
 "Number of chrome processes to create: $numberOfPhysicalCores (# physical cores)";
 "Each chrome process requires 1-2GB RAM!"
 
-$registryPath = "HKCU:\Software\Policies\Google\Chrome"
-"Setting registry $registryPath to prevent Chrome's software_reporter_tool.exe from running during this test on the new profile directories"
-$Name = "ChromeCleanupEnabled"
-$Name2 = "ChromeCleanupReportingEnabled"
-$value = 0
-$backupValue = Get-ItemProperty -Path $registryPath -Name $Name -ErrorAction SilentlyContinue
-$backupValue2 = Get-ItemProperty -Path $registryPath -Name $Name2 -ErrorAction SilentlyContinue
-New-Item -Path $registryPath -Force | Out-Null
-New-ItemProperty -Path $registryPath -Name $Name -Value $value -PropertyType DWORD -Force | Out-Null
-New-ItemProperty -Path $registryPath -Name $Name2 -Value $value -PropertyType DWORD -Force | Out-Null
-
-
-$profile = 0;
 $directories = @();
 foreach ($destinationDir in $args)
 {
@@ -51,16 +38,16 @@ if ($directories.Length -eq 0)
 
 foreach ($destinationDir in $directories)
 {
+
     $reportHtmlFile = $(Join-Path (Join-Path $workingDir $destinationDir) $htmlFileName);
     if (Test-Path -path $reportHtmlFile)
     {
         $loopCounter = [int]$instances
         while($loopCounter -gt 0)
         {
-        $reportHtmlFile
-            start chrome "--user-data-dir=""ChromeProfiles\Profile$profile"" --disable-default-apps --new-window ""$($reportHtmlFile)"""            
+        $reportHtmlFile  
+        Start-Process "msedge" -PassThru -ArgumentList "--inprivate", "$reportHtmlFile"
             --$loopCounter
-            $profile = ($profile+1) % $numberOfPhysicalCores;
             sleep -Seconds 5
         }
     }
@@ -68,8 +55,5 @@ foreach ($destinationDir in $directories)
 
 "Press enter when load test is complete: "
 pause
-"closing all chrome windows"
-start taskkill "/IM chrome.exe /FI ""USERNAME eq $env:UserName"""
-"Setting registry $registryPath back"
-Remove-ItemProperty -Path $registryPath -Name $name
-Remove-ItemProperty -Path $registryPath -Name $name2
+"closing all  windows"
+Get-Process -Name "msedge" |Where-Object { $_.MainWindowTitle -like "RealisticLoadTest*"} | Stop-Process -Force

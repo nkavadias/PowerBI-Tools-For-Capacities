@@ -1,0 +1,45 @@
+<script>
+  var maxLoads = 5; // Limit refreshes
+  var loadCounter = 0;
+  var startTime = new Date();
+
+  function EmbedReport() {
+    if (errorTracker.length != 0) return;
+    if (report) report.off("rendered");
+
+    // Update counters
+    if (loadCounter > 0) {
+      let avgDuration = Math.round(((((new Date()) - startTime) - (thinkTimeSeconds*loadCounter*1000)) / loadCounter)) / 1000;
+      document.getElementById('LoadReportCounter').innerHTML =
+        loadCounter + " refreshes<br/>" +
+        avgDuration + " seconds average refresh time<br/>" +
+        thinkTimeSeconds + " seconds think time";
+    }
+
+    // Stop after maxLoads
+    if (loadCounter >= maxLoads) {
+      // Gather data
+      const divTxt = document.getElementById("LoadReportCounter").textContent
+        .split('\n').map(v => v.trim()).filter(Boolean);
+      const data = {
+        refreshes: divTxt[0].replace(" refreshes", ""),
+        avgRefreshTime: divTxt[1].replace(" seconds average refresh time",""),
+        thinkTime: divTxt[2].replace(" seconds think time","")
+      };
+
+      // Upload to Azure Blob with SAS URL
+      fetch("https://<storageAccount>.blob.core.windows.net/<container>/<filename>.json?<sasToken>", {
+        method: "PUT",
+        headers: {
+          "x-ms-blob-type": "BlockBlob",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+      return;
+    }
+
+    // ...embed or refresh the report here...
+    loadCounter++;
+  }
+</script>
