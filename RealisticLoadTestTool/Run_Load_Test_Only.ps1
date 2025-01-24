@@ -8,6 +8,44 @@
 # Once load test windows are opened, it waits for the user to press enter again at which point it closes *all* open Chrome windows for the current user. Note it does not just close Chrome windows it opens.
 # Run this script as administrator
 ################################################################################################################################################################################
+[CmdletBinding()]
+Param(
+  [Parameter(Mandatory = $false )]     [switch] $UseDocker
+)
+
+Function dockerRun {
+
+    # Check if Docker is installed
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host "Docker is not installed or not in PATH. Please install Docker Desktop first." -ForegroundColor Red
+    exit 1
+}
+# Pull the Docker image
+Write-Host "Pulling Docker image $image..."
+docker pull $image
+
+
+}
+
+function CheckForSeleniumBIModule
+{
+    $module = Get-Module -ListAvailable -Name Selenium 
+    if($module -eq $null)
+    {
+        Write-Host "Selenium module is not installed. Please install the module before proceeding further." -ForegroundColor Yellow
+        try {
+        Write-Host "Trying to install Selenium module" -ForegroundColor Yellow    
+        Install-Module -Name Selenium  
+        }
+        catch {
+            Write-Host "Failed to install Selenium. Please install the module manually and then proceed further." -ForegroundColor Red
+            exit
+        }
+    } 
+}
+
+$image = "selenium/standalone-chrome"
+$containerName = "PBILoadTest"
 
 $htmlFileName = 'RealisticLoadTest.html'
 $workingDir = $pwd.Path
@@ -35,25 +73,81 @@ if ($directories.Length -eq 0)
     }
 }
 
-
-foreach ($destinationDir in $directories)
-{
-
-    $reportHtmlFile = $(Join-Path (Join-Path $workingDir $destinationDir) $htmlFileName);
-    if (Test-Path -path $reportHtmlFile)
+if ( $UseDocker -eq $true) { 
+    $ContainerPath = "/usr/src/"
+    CheckForSeleniumBIModule
+    dockerRun
+    foreach ($destinationDir in $directories)
     {
-        $loopCounter = [int]$instances
-        while($loopCounter -gt 0)
+
+        $reportHtmlFile = $(Join-Path (Join-Path $workingDir $destinationDir) $htmlFileName);
+        if (Test-Path -path $reportHtmlFile)
         {
-        $reportHtmlFile  
-        Start-Process "msedge" -PassThru -ArgumentList "--inprivate", "$reportHtmlFile"
-            --$loopCounter
+            $loopCounter = [int]$instances
+            while($loopCounter -gt 0)
+            {
+            $reportHtmlFile  
+            # Run the container
+            $containerInstance = $containerName + $loopCounter
+            $containerPort = 4444 + $loopCounter
+            Write-Host "Starting the container $containerInstance..."
+            docker run -d --name $containerInstance -p $containerPort`:4444 $image
             sleep -Seconds 5
+            Write-Host "Copying $reportHtmlFile to $containerInstance`:$containerPath..."
+            docker cp $reportHtmlFile $containerInstance`:$containerPath
+
+            # Open the HTML file in the browser inside the container
+            Write-Host "Running $htmlFileName in the browser inside $containerInstance..."
+            $remoteFile = "file://$containerPath/$htmlFileName"
+            $remoteFile
+            $remoteAddress = "http://localhost`:$containerPort/wd/hub"
+            $capabilities = @{browserName='chrome'}
+            #docker exec $containerInstance google-chrome --headless --disable-gpu --no-sandbox $remoteFile & 
+            $driver = Start-SeRemote -RemoteAddress $remoteAddress -DesiredCapabilities $capabilities
+            $driver.Navigate().GoToUrl($remoteFile)
+            start-sleep -Seconds 30
+            New-SeScreenshot -Driver $driver -Path "C:\Temp\screenshot$containerPort.png"
+            --$loopCounter
+            
+            }
         }
     }
+
+    "Press enter when load test is complete: "
+    pause
+    $loopCounter = [int]$instances
+    while($loopCounter -gt 0)
+    {
+        $containerInstance = $containerName + $loopCounter
+        $containerPort = 4444 + $loopCounter
+        Write-Host "Stopping the container $containerInstance..."
+        docker stop $containerInstance
+        docker rm -f $containerInstance
+        $loopCounter--
+    }
+
 }
+if ($UseDocker -eq $false) {
+
+    foreach ($destinationDir in $directories)
+    {
+        $reportHtmlFile = $(Join-Path (Join-Path $workingDir $destinationDir) $htmlFileName);
+        if (Test-Path -path $reportHtmlFile)
+        {
+            $loopCounter = [int]$instances
+            while($loopCounter -gt 0)
+            {
+            $reportHtmlFile  
+            Start-Process "msedge" -PassThru -ArgumentList "--inprivate", "$reportHtmlFile"
+                 --$loopCounter
+                sleep -Seconds 3
+            }
+        }
+    }
+
 
 "Press enter when load test is complete: "
 pause
 "closing all  windows"
-Get-Process -Name "msedge" |Where-Object { $_.MainWindowTitle -like "RealisticLoadTest*"} | Stop-Process -Force
+Get-Process -Name "msedge" |Where-Object { $_.MainWindowTitle -like "RealisticLoadTest*"} | Stop-Process -Force|Out-Null
+}

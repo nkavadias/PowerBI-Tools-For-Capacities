@@ -30,6 +30,24 @@ $reportUrlRegex = '(?<=reportUrl\":\s*\").*?(?=\")'
 
 
 #Function implementation to update token file
+function CheckForPowerBIModule
+{
+    $module = Get-Module -ListAvailable -Name MicrosoftPowerBIMgmt
+    if($module -eq $null)
+    {
+        Write-Host "Power BI Management module is not installed. Please install the module before proceeding further." -ForegroundColor Yellow
+        try {
+        Write-Host "Trying to install Power BI Management module" -ForegroundColor Yellow    
+        Install-Module -Name MicrosoftPowerBIMgmt 
+        }
+        catch {
+            Write-Host "Failed to install Power BI Management module. Please install the module manually and then proceed further." -ForegroundColor Red
+            exit
+        }
+    } 
+}
+
+
 function UpdateTokenFile
 {     
     $accessToken = Get-PowerBIAccessToken -AsString | % {$_.replace("Bearer ","").Trim()}
@@ -64,6 +82,7 @@ while($masterFilesExists)
     }
 }
 
+CheckForPowerBIModule
 [int]$reportCount = Read-Host "How many reports you want to configure?"
 $increment = 1
 while($reportCount -gt 0)
