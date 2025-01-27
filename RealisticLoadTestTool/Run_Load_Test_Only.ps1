@@ -10,7 +10,8 @@
 ################################################################################################################################################################################
 [CmdletBinding()]
 Param(
-  [Parameter(Mandatory = $false )]     [switch] $UseDocker
+  [Parameter(Mandatory = $false )]     [switch] $UseDocker,
+  [Parameter(Mandatory = $false )]     [string] $Instances
 )
 
 Function dockerRun {
@@ -67,7 +68,7 @@ foreach ($destinationDir in $args)
 }
 if ($directories.Length -eq 0)
 {
-    foreach ($destinationDir in Get-ChildItem -Path $workingDir -Directory)
+    foreach ($destinationDir in Get-ChildItem -Path $workingDir -Directory -Exclude "DemoLoad*")
     {
         $directories += ,$destinationDir.Name;
     }
@@ -92,7 +93,7 @@ if ( $UseDocker -eq $true) {
             $containerPort = 4444 + $loopCounter
             Write-Host "Starting the container $containerInstance..."
             docker run -d --name $containerInstance -p $containerPort`:4444 $image
-            sleep -Seconds 5
+            Start-Sleep -Seconds 5
             Write-Host "Copying $reportHtmlFile to $containerInstance`:$containerPath..."
             docker cp $reportHtmlFile $containerInstance`:$containerPath
 
