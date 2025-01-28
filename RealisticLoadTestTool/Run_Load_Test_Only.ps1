@@ -129,7 +129,7 @@ if ( $UseDocker -eq $true) {
 
 }
 if ($UseDocker -eq $false) {
-
+ $driverList = @()
     foreach ($destinationDir in $directories)
     {
         $reportHtmlFile = $(Join-Path (Join-Path $workingDir $destinationDir) $htmlFileName);
@@ -139,9 +139,11 @@ if ($UseDocker -eq $false) {
             while($loopCounter -gt 0)
             {
             $reportHtmlFile  
-            Start-Process "msedge" -PassThru -ArgumentList "--inprivate", "$reportHtmlFile"
+            $driver = Start-SeChrome
+            $driver.Navigate().GoToUrl($reportHtmlFile)
+            $driverList += $driver
                  --$loopCounter
-                sleep -Seconds 3
+                sleep -Seconds 1
             }
         }
     }
@@ -149,6 +151,12 @@ if ($UseDocker -eq $false) {
 
 "Press enter when load test is complete: "
 pause
-"closing all  windows"
-Get-Process -Name "msedge" |Where-Object { $_.MainWindowTitle -like "RealisticLoadTest*"} | Stop-Process -Force|Out-Null
+$i = 0 
+foreach ($driver in $driverList)
+{
+    $i++
+    $e =Find-SeElement -driver $driver -id LoadReportCounter
+    Write-Host "Browser instance $i result: $($e.Text)"
+    $driver.Quit()
+}
 }
