@@ -1,0 +1,13 @@
+reportParameters= {
+  "reportUrl": "https://app.powerbi.com/reportEmbed?reportId=cbf36f87-2dbe-42f0-a8b3-f1b7833fe623&groupId=2e11b4af-3c91-40e4-a36a-3caca6fbc87a&w=2&config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLUFVU1RSQUxJQS1TT1VUSEVBU1QtcmVkaXJlY3QuYW5hbHlzaXMud2luZG93cy5uZXQiLCJlbWJlZEZlYXR1cmVzIjp7InVzYWdlTWV0cmljc1ZOZXh0Ijp0cnVlfX0%3d",
+  "sessionRestart": 100,
+  "thinkTimeSeconds": 1,
+  "filters": [
+		{
+			"filterTable":"Test School",
+			"filterColumn":"School Name",
+			"isSlicer":true,
+			"filtersList":["Minto Public School","Miranda North Public School","Miranda Public School","Mitchell High School","Mitchells Island Public School","Mittagong Public School","Moama Public School","Modanville Public School","Model Farms High School","Mogo Public School","Molong Central School","Mona Vale Public School","Monaro High School","Monteagle Public School","Moonbi Public School","Moorebank High School","Moorefield Girls High School","Moorland Public School","Moree East Public School","Moree Public School","Moree Secondary College","Moree Secondary College Carol Ave Campus","Morgan Street Public School","Morisset High School","Morisset Public School","Morpeth Public School","Mortdale Public School","Mortlake Public School","Moruya High School","Moruya Public School","Mosman High School","Mosman Public School"]
+		}
+  ]
+};
