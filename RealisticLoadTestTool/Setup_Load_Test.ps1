@@ -1,7 +1,8 @@
 [CmdletBinding()]
 Param(
     [Parameter(Mandatory = $false)]
-    [string] $WorkspaceNameFilter
+    [string] $WorkspaceNameFilter,
+    [string] $TestNameDirectory
 )
 
 ################################################################################################################################################################################
@@ -138,7 +139,11 @@ while($reportCount -gt 0)
 
 
     #Creating sub-folder to create a report set
-    $destinationDir = new-item -Path $workingDir -Name $(get-date -f MM-dd-yyyy_HH_mm_ss) -ItemType directory
+    if ([string]::IsNullOrEmpty($TestNameDirectory)) {
+        $destinationDir = New-Item -Path $workingDir -Name $(Get-Date -f MM-dd-yyyy_HH_mm_ss) -ItemType Directory
+    } else {
+        $destinationDir = New-Item -Path $workingDir -Name $TestNameDirectory -ItemType Directory
+    }
 
     #Copy master html file into the new directory
     Copy-Item $(Join-Path $workingDir $htmlFileName) -Destination $destinationDir

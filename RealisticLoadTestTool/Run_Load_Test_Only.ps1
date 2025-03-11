@@ -11,7 +11,9 @@
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory = $false )]     [switch] $UseDocker,
-  [Parameter(Mandatory = $false )]     [string] $Instances
+  [Parameter(Mandatory = $false )]     [string] $Instances,
+  [Parameter(Mandatory = $false )]     [string] $TestNameDirectoryFilter
+  
 )
 
 Function dockerRun {
@@ -68,9 +70,21 @@ foreach ($destinationDir in $args)
 }
 if ($directories.Length -eq 0)
 {
-    foreach ($destinationDir in Get-ChildItem -Path $workingDir -Directory -Exclude "DemoLoad*")
-    {
-        $directories += ,$destinationDir.Name;
+    # If TestNameDirectoryFilter is provided, filter directories by that pattern
+    if ($TestNameDirectoryFilter) {
+        Write-Host "Filtering test directories with pattern: *$TestNameDirectoryFilter*"
+        foreach ($destinationDir in Get-ChildItem -Path $workingDir -Directory -Exclude "DemoLoad*" | 
+            Where-Object { $_.Name -like "*$TestNameDirectoryFilter*" })
+        {
+            $directories += ,$destinationDir.Name;
+        }
+    }
+    else {
+        # Original behavior - get all directories except DemoLoad*
+        foreach ($destinationDir in Get-ChildItem -Path $workingDir -Directory -Exclude "DemoLoad*")
+        {
+            $directories += ,$destinationDir.Name;
+        }
     }
 }
 
@@ -152,11 +166,51 @@ if ($UseDocker -eq $false) {
 "Press enter when load test is complete: "
 pause
 $i = 0 
+$allRefreshTimes = @()
+
+# Collect data from all instances
 foreach ($driver in $driverList)
 {
     $i++
-    $e =Find-SeElement -driver $driver -id LoadReportCounter
-    Write-Host "Browser instance $i result: $($e.Text)"
+    $e = Find-SeElement -driver $driver -id LoadReportCounter
+    $resultText = $e.Text
+    Write-Host "Browser instance $i raw result: $resultText"
+    
+    # Extract the average refresh time if available
+    if ($resultText -match '(\d+\.?\d*) seconds average refresh time') {
+        $avgRefreshTime = [double]$matches[1]
+        $allRefreshTimes += $avgRefreshTime
+    }
+    
     $driver.Quit()
+}
+
+# Calculate statistics if we have data
+if ($allRefreshTimes.Count -gt 0) {
+    # Sort for calculating median and getting min/max
+    $sortedTimes = $allRefreshTimes | Sort-Object
+    
+    # Calculate statistics
+    $minTime = $sortedTimes[0]
+    $maxTime = $sortedTimes[-1]
+    $avgTime = ($sortedTimes | Measure-Object -Average).Average
+    
+    # Calculate median
+    if ($sortedTimes.Count % 2 -eq 0) {
+        # Even number of items
+        $medianIndex = $sortedTimes.Count / 2
+        $median = ($sortedTimes[$medianIndex-1] + $sortedTimes[$medianIndex]) / 2
+    } else {
+        # Odd number of items
+        $median = $sortedTimes[($sortedTimes.Count - 1) / 2]
+    }
+    
+    # Display statistics
+    Write-Host "`nRefresh Time Statistics (seconds):" -ForegroundColor Cyan
+    Write-Host "Minimum:  $($minTime.ToString("0.000"))" -ForegroundColor Green
+    Write-Host "Maximum:  $($maxTime.ToString("0.000"))" -ForegroundColor Green
+    Write-Host "Average:  $($avgTime.ToString("0.000"))" -ForegroundColor Green
+    Write-Host "Median:   $($median.ToString("0.000"))" -ForegroundColor Green
+    Write-Host "Samples:  $($allRefreshTimes.Count)" -ForegroundColor Green
 }
 }
