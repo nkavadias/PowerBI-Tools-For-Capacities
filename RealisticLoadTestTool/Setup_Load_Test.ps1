@@ -1,3 +1,9 @@
+[CmdletBinding()]
+Param(
+    [Parameter(Mandatory = $false)]
+    [string] $WorkspaceNameFilter
+)
+
 ################################################################################################################################################################################
 # Script to setup a load test for Power BI Reports
 #-------------------------------------------------------------------
@@ -94,9 +100,13 @@ while($reportCount -gt 0)
     $user = Login-PowerBI
     $user
 
-    #Accessing list of workspaces
-    $workSpaceList = Get-PowerBIWorkspace
-    #can add my workspace and then not specify the WorkspaceId switch when we list reports below... TODO
+    #Accessing list of workspaces with optional filter
+    if ($WorkspaceNameFilter) {
+        Write-Host "Filtering workspaces by name: *$WorkspaceNameFilter*" -ForegroundColor Yellow
+        $workSpaceList = Get-PowerBIWorkspace | Where-Object { $_.Name -like "*$WorkspaceNameFilter*" }
+    } else {
+        $workSpaceList = Get-PowerBIWorkspace
+    }
 
     $workSpaceCounter = 1
     foreach($workSpace in $workSpaceList)
