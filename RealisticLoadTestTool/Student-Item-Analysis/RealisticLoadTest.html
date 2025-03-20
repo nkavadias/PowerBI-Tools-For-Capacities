@@ -435,7 +435,10 @@
 
 
 
-		//END REGION: helper functions		
+		//END REGION: helper functions
+
+		// Array to store individual refresh times
+		var refreshTimeHistory = [];
 
 		// Function to add to history
 		function recordRefreshTime(duration) {
@@ -457,7 +460,7 @@
 
 	<div id="LoadReportCounter">0</div>
 
-	<div id="RefreshTimeHistory"></div>
+	<div id="RefreshTimeHistory" style="display:none;"></div>
 
 	<!--
 	<div id="InfoMessage" style="font-weight:bolder;">Report URL and AAD token:</div>

@@ -11,8 +11,8 @@
 [CmdletBinding()]
 Param(
   [Parameter(Mandatory = $false )]     [switch] $UseDocker,
-  [Parameter(Mandatory = $false )]     [string] $Instances,
-  [Parameter(Mandatory = $false )]     [string] $TestNameDirectoryFilter
+  [Parameter(Mandatory = $false )]     [string] $Instances ,
+  [Parameter(Mandatory = $false )]     [string] $TestNameDirectoryFilter = "student-item-analysis2"
   
 )
 
@@ -53,7 +53,21 @@ $containerName = "PBILoadTest"
 $htmlFileName = 'RealisticLoadTest.html'
 $workingDir = $pwd.Path
 "This script finds all subdirectories with $htmlFileName files and runs a specifies number of instances of each."
-$instances = [int] $(Read-Host -Prompt 'Enter number of instances to initiate for each report')
+# Check if $Instances parameter is empty or not a valid number
+if([string]::IsNullOrWhiteSpace($Instances) -or -not [int]::TryParse($Instances, [ref]$null)) {
+    $validInput = $false
+    while(-not $validInput) {
+        $userInput = Read-Host -Prompt 'Enter number of instances to initiate for each report'
+        if([int]::TryParse($userInput, [ref]$null)) {
+            $Instances = [int]$userInput
+            $validInput = $true
+        } else {
+            Write-Host "Please enter a valid number." -ForegroundColor Red
+        }
+    }
+} else {
+    $Instances = [int]$Instances
+}
 $numberOfPhysicalCores = (Get-ciminstance –class Win32_processor).NumberOfCores;
 if ($numberOfPhysicalCores.Length)
 {
@@ -172,14 +186,19 @@ $allRefreshTimes = @()
 foreach ($driver in $driverList)
 {
     $i++
-    $e = Find-SeElement -driver $driver -id LoadReportCounter
-    $resultText = $e.Text
-    Write-Host "Browser instance $i raw result: $resultText"
-    
-    # Extract the average refresh time if available
-    if ($resultText -match '(\d+\.?\d*) seconds average refresh time') {
-        $avgRefreshTime = [double]$matches[1]
-        $allRefreshTimes += $avgRefreshTime
+    try {
+        # Use Find-SeElement instead of Get-SeElement
+        $historyElement = Get-SeElement -Driver $driver -Id "RefreshTimeHistory" 
+        Write-Host "Element found" -ForegroundColor Green
+        $historyText = $historyElement.Text
+        
+        if ($historyText) {
+            $refreshTimes = ConvertFrom-Json $historyText
+            $allRefreshTimes += $refreshTimes
+            Write-Host "Browser instance $i samples: $($refreshTimes.Count)" 
+        }
+    } catch {
+        Write-Host "Element not found: $_" -ForegroundColor Red
     }
     
     $driver.Quit()
@@ -189,6 +208,7 @@ foreach ($driver in $driverList)
 if ($allRefreshTimes.Count -gt 0) {
     # Sort for calculating median and getting min/max
     $sortedTimes = $allRefreshTimes | Sort-Object
+    $sortedTimes
     
     # Calculate statistics
     $minTime = $sortedTimes[0]

@@ -1,0 +1,7 @@
+reportParameters= {
+  "reportUrl": "https://app.powerbi.com/reportEmbed?reportId=7f5859ce-5341-4267-9a2f-24c432d4ec75&groupId=a536db80-acd7-46a2-91fc-7ee1c7b69483&w=2&config=eyJjbHVzdGVyVXJsIjoiaHR0cHM6Ly9XQUJJLUFVU1RSQUxJQS1TT1VUSEVBU1QtcmVkaXJlY3QuYW5hbHlzaXMud2luZG93cy5uZXQiLCJlbWJlZEZlYXR1cmVzIjp7InVzYWdlTWV0cmljc1ZOZXh0Ijp0cnVlfX0%3d",
+  "sessionRestart": 100,
+  "thinkTimeSeconds": 1
+};
+
+//see DemoLoadTest1/PBIReport.JSON and DemoLoadTest2/PBIReport.JSON for examples of how to define which page it should show, which bookmarks to click through, which filters and slicers to select

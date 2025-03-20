@@ -22,6 +22,7 @@ function UpdateTokenFile
 {     
     $tokenJSONFile = Get-Content $(Join-Path $workingDir 'PBIToken.JSON') -raw -ErrorAction SilentlyContinue #gg edited this
     $new_TokenJSONFile = ($tokenJSONFile -replace $token_regex,$accessToken)
+    write-host "Updating Token file in $destinationDir"
     $new_TokenJSONFile | set-content $(Join-Path $destinationDir 'PBIToken.JSON')
 }
 
@@ -51,7 +52,7 @@ try
 	}
 	else
 	{
-		Write-Host "Already signed in" #must have signed in with a different window
+		Write-Host "Already signed in, username unknown" #must have signed in with a different window
 	}
 }
 catch
